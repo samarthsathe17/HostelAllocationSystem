@@ -3,7 +3,13 @@ package com.hostel;
 import com.hostel.api.WebServer;
 
 public class Main {
-    public static void main(String[] args) throws Exception {
-        WebServer.main(args);
+    public static void main(String[] args) {
+        try {
+            System.out.println("Starting Hostel Allocation System Backend...");
+            WebServer.main(args);
+        } catch (Exception e) {
+            System.err.println("Failed to start server: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

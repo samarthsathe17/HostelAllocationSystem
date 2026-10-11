@@ -10,11 +10,19 @@ function App() {
     rollNo: '',
     email: '',
     phone: '',
-    roomNo: '',
+    cgpa: '',
+    attendance: '',
+    yearOfStudy: '1',
+    distanceFromCampus: '',
+    financialNeed: 'false',
+    medicalNeeds: '',
+    conductStatus: 'GOOD',
+    preferredRoomType: 'SHARED',
     messPlan: 'STANDARD'
   });
   const [status, setStatus] = useState('');
   const [statusType, setStatusType] = useState('');
+  const [loadingRooms, setLoadingRooms] = useState(true);
 
   useEffect(() => {
     fetch('http://localhost:8080/api/rooms/available')
@@ -24,24 +32,23 @@ function App() {
         if (data.length > 0) {
           setFormData(prev => ({ ...prev, roomNo: data[0].split(" ")[1] }));
         }
+        setLoadingRooms(false);
       })
       .catch(err => {
         console.error("Failed to fetch rooms:", err);
         const fallbackRooms = ["Room 101 (SINGLE)", "Room 102 (SHARED)"];
         setRooms(fallbackRooms);
         setFormData(prev => ({ ...prev, roomNo: fallbackRooms[0].split(" ")[1] }));
+        setLoadingRooms(false);
       });
   }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleRoomChange = (e) => {
-    const selected = e.target.value;
-    const roomNumber = selected.split(" ")[1];
-    setFormData(prev => ({ ...prev, roomNo: roomNumber }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ 
+        ...prev, 
+        [name]: type === 'checkbox' ? checked : value 
+    }));
   };
 
   const handleSubmit = (e) => {
@@ -63,11 +70,11 @@ function App() {
       .then(res => res.json())
       .then(data => {
         if (data.status === 'success') {
-          setStatus('Success! Allotment letter generated.');
+          setStatus('Application submitted successfully! Your priority score is being calculated.');
           setStatusType('success');
-          setFormData(prev => ({ ...prev, name: '', rollNo: '', email: '', phone: '' }));
+          setFormData(prev => ({ ...prev, name: '', rollNo: '', email: '', phone: '', cgpa: '', attendance: '', distanceFromCampus: '', medicalNeeds: '' }));
         } else {
-          setStatus('Allocation Failed: ' + data.message);
+          setStatus('Submission Failed: ' + data.message);
           setStatusType('error');
         }
       })
@@ -92,9 +99,10 @@ function App() {
 
         <nav className="header-nav">
           <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('home'); }} className={activeTab === 'home' ? 'active' : ''}>Home</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('allocation'); }} className={activeTab === 'allocation' ? 'active' : ''}>Hostel Allocation</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('allocation'); }} className={activeTab === 'allocation' ? 'active' : ''}>Apply for Hostel</a>
           <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('matrix'); }} className={activeTab === 'matrix' ? 'active' : ''}>Room Matrix</a>
           <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('guidelines'); }} className={activeTab === 'guidelines' ? 'active' : ''}>Guidelines</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('admin'); }} className={activeTab === 'admin' ? 'active' : ''}>Admin</a>
         </nav>
 
         <div className="header-right">
@@ -134,17 +142,17 @@ function App() {
           <div className="step-divider"></div>
           <div className="step">
             <div className="step-number">02</div>
-            <div className="step-text">Select Available Room</div>
+            <div className="step-text">Fill Preferences & Criteria</div>
           </div>
           <div className="step-divider"></div>
           <div className="step">
             <div className="step-number">03</div>
-            <div className="step-text">Choose Mess Plan</div>
+            <div className="step-text">Auto-calculation of Priority Score</div>
           </div>
           <div className="step-divider"></div>
           <div className="step">
             <div className="step-number">04</div>
-            <div className="step-text">Instant Allocation & Allotment Letter Generation</div>
+            <div className="step-text">Admin Review & Allocation Confirmation</div>
           </div>
         </div>
       </section>
@@ -187,14 +195,63 @@ function App() {
               </div>
             </div>
 
-            <div className="input-group full-width mt-4">
-              <label>Select Room</label>
-              <select onChange={handleRoomChange} required className="custom-select">
-                {rooms.length === 0 ? <option value="">Loading rooms...</option> : null}
-                {rooms.map((room, idx) => (
-                  <option key={idx} value={room}>{room}</option>
-                ))}
-              </select>
+            <h3 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '1.2rem', color: '#1f3c88' }}>Academic & Evaluation Criteria</h3>
+            <div className="form-grid">
+              <div className="input-group">
+                <label>CGPA</label>
+                <input type="number" step="0.1" name="cgpa" value={formData.cgpa} onChange={handleChange} required />
+              </div>
+              <div className="input-group">
+                <label>Attendance (%)</label>
+                <input type="number" step="0.1" name="attendance" value={formData.attendance} onChange={handleChange} required />
+              </div>
+              <div className="input-group">
+                <label>Year of Study</label>
+                <select name="yearOfStudy" value={formData.yearOfStudy} onChange={handleChange} className="custom-select" required>
+                    <option value="1">1st Year</option>
+                    <option value="2">2nd Year</option>
+                    <option value="3">3rd Year</option>
+                    <option value="4">4th Year</option>
+                </select>
+              </div>
+              <div className="input-group">
+                <label>Distance from Campus (km)</label>
+                <input type="number" name="distanceFromCampus" value={formData.distanceFromCampus} onChange={handleChange} required />
+              </div>
+            </div>
+
+            <h3 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '1.2rem', color: '#1f3c88' }}>Additional Information</h3>
+            <div className="form-grid">
+              <div className="input-group">
+                <label>Medical Needs (optional)</label>
+                <input type="text" name="medicalNeeds" value={formData.medicalNeeds} onChange={handleChange} />
+              </div>
+              <div className="input-group">
+                <label>Conduct Status</label>
+                <select name="conductStatus" value={formData.conductStatus} onChange={handleChange} className="custom-select">
+                    <option value="GOOD">Good Standing</option>
+                    <option value="WARNING">Warning Issued</option>
+                    <option value="SUSPENDED">Suspended</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '15px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                    <input type="checkbox" name="financialNeed" checked={formData.financialNeed} onChange={handleChange} style={{ width: 'auto', height: 'auto' }} />
+                    Applying for Financial Hardship / Scholarship Priority
+                </label>
+            </div>
+
+            <h3 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '1.2rem', color: '#1f3c88' }}>Preferences</h3>
+            <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="input-group">
+                    <label>Preferred Room Type</label>
+                    <select name="preferredRoomType" value={formData.preferredRoomType} onChange={handleChange} className="custom-select">
+                        <option value="SHARED">Shared (Standard)</option>
+                        <option value="SINGLE">Single Occupancy</option>
+                    </select>
+                </div>
             </div>
 
             <div className="mess-plan-section mt-4">
@@ -216,7 +273,7 @@ function App() {
             </div>
 
             <button type="submit" className="btn-primary mt-6">
-              Allocate Room & Generate Letter
+              Submit Allocation Application
             </button>
           </form>
         </div>
@@ -227,10 +284,13 @@ function App() {
       {activeTab === 'home' && <Home />}
       {activeTab === 'matrix' && <RoomMatrix />}
       {activeTab === 'guidelines' && <Guidelines />}
+      {activeTab === 'admin' && <AdminDashboard />}
 
     </div>
   );
 }
+
+import AdminDashboard from './AdminDashboard';
 
 function RoomMatrix() {
   const [allRooms, setAllRooms] = useState([]);
